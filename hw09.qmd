@@ -1,0 +1,167 @@
+---
+title: "BEE 4750 Homework 9: Decisions Under Uncertainty and Over Time"
+pdf-title: "BEE 4750/5750"
+pdf-subtitle: "Homework 9: Decisions Under Uncertainty and Over Time"
+date: last-modified
+format:
+    html:
+        warning: true
+        error: true
+    ipynb:
+        warning: true
+        error: true
+        code-annotation: below
+    typst:
+        warning: true
+        error: true
+        toc: false
+        date: "11/18/2026"
+        filters:
+          - _assets/typst-pdf/processing.lua
+execute:
+    echo: true
+    eval: false
+engine: julia
+julia:
+  exeflags: ["+1.11.5"]
+format-links:
+  - format: typst
+    text: PDF
+    icon: file-earmark-pdf
+  - format: ipynb
+    text: Notebook
+    icon: laptop
+---
+
+::: {.content-visible when-format="ipynb"}
+**Name**:
+
+**ID**:
+:::
+
+::: {.callout-important icon=false}
+### Due Date
+
+Thursday, 12/03/26, 9:00pm
+:::
+
+::: {.content-visible when-format="html"}
+
+:::{.callout-caution}
+
+If you are enrolled in the course, use the assignment link posted on Ed Discussion so that we can find your repository if you need help.
+
+:::
+
+:::
+
+## Overview
+
+### Instructions
+
+- Problem 1 asks you to analyze a two-stage decision under uncertainty, by hand and in `JuMP`.
+- Problem 2 asks you to solve a sequential decision by hand with backward induction.
+- Write your answers in Markdown cells. For the scenario tree, a photo or scan of a hand drawing is fine: save it in this folder and insert it with `![](tree.png)`.
+
+### Load Environment
+
+```{julia}
+#| output: false
+
+import Pkg
+Pkg.activate(@__DIR__)
+Pkg.instantiate()
+```
+
+```{julia}
+using JuMP
+using HiGHS
+using Plots
+```
+
+## Problems (Total: 50 Points)
+
+### Problem 1 (26)
+
+A drinking-water plant draws from a lake that has harmful algal blooms most summers. During a bloom, the plant doses powdered activated carbon (PAC) to remove cyanotoxins and taste-and-odor compounds.
+
+The plant orders PAC in spring at \$2,000 per ton, before anyone knows how bad the summer's bloom will be. The bloom can be mild, moderate or severe, with historical probabilities:
+
+| Bloom | Mild | Moderate | Severe |
+|:--|--:|--:|--:|
+| PAC needed (tons) | 30 | 60 | 120 |
+| Probability | 0.3 | 0.4 | 0.3 |
+
+If the spring order runs out, PAC delivered as an emergency during the bloom costs \$5,500 per ton. PAC left over in the fall is kept for next year, and is worth \$1,000 per ton. The plant wants to spend as little as possible on the total PAC order.
+
+#### Problem 1.1 (3)
+
+Draw the scenario tree, and label the first-stage decision and the recourse decisions in each bloom.
+
+#### Problem 1.2 (4)
+
+Suppose the plant knew in spring which bloom intensity was coming. What is the expected cost of the season with this perfect information?
+
+#### Problem 1.3 (5)
+
+A planner suggests ordering the amount of PAC required for the average-size bloom. What is the expected cost of this order?
+
+#### Problem 1.4 (6)
+
+Write the two-stage problem as a single linear program in `JuMP`: the spring order, plus an emergency delivery and a leftover amount for each bloom. Solve it to find the *stochastic solution*, the spring order with the lowest expected cost over the three blooms, and report the order and its expected cost.
+
+```{julia}
+# Tons of PAC each bloom needs (mild, moderate, severe), and their probabilities
+needs = [30, 60, 120]
+probabilities = [0.3, 0.4, 0.3]
+
+carbon = Model(HiGHS.Optimizer)
+set_silent(carbon)
+
+# Add the spring order, an emergency delivery and a leftover amount for each
+# bloom, the constraints that link them to each bloom's need, and the
+# expected-cost objective.
+```
+
+#### Problem 1.5 (3)
+
+Interpret the stochastic solution: compare the cost of being one ton short with the cost of one ton left over.
+
+#### Problem 1.6 (5)
+
+Compute the value of the stochastic solution (VSS) and the expected value of perfect information (EVPI). What is the most the plant should pay each year for a perfect forecast of the bloom?
+
+### Problem 2 (24)
+
+The groundwater under an old industrial site holds 6 units of a chlorinated solvent (1 unit = 100 kg). The state requires that at most 1 unit remain after three years. Each year has two steps:
+
+1. **Treatment.** The site may pump groundwater out and treat it at the surface (**pump and treat**), removing up to 3 units. Removing 0, 1, 2 or 3 units costs \$0, \$10,000, \$25,000 or \$45,000: each extra unit needs more wells and more pumping, so it costs more than the last.
+2. **Biodegradation.** Microbes then break down 1 unit of the mass left after treatment, with two exceptions. At 5 or 6 units the solvent is concentrated enough to inhibit the microbes, so nothing degrades; at 1 unit it is too dilute to degrade further.
+
+What remains after biodegradation is the mass at the start of next year:
+
+| Mass left after treatment (units) | 0 | 1 | 2 | 3 | 4 | 5 | 6 |
+|:------------------------------|---:|---:|---:|---:|---:|---:|---:|
+| **Mass at the start of next year (units)** | 0 | 1 | 1 | 2 | 3 | 5 | 6 |
+
+The site wants to meet the standard at the lowest total cost.
+
+#### Problem 2.1 (4)
+
+Trace two simple plans year by year: (a) remove 1 unit every year; (b) treat nothing in years 1 and 2, then remove as much as allowed in year 3. Does each meet the standard, and what does each cost?
+
+#### Problem 2.2 (5)
+
+Solve the problem by backward induction, by hand, starting with year 3. For each mass $m$ from 0 to 6 at the start of year 3, find the cheapest removal that meets the standard and the value function $V_3(m)$, the lowest treatment cost from year 3 to the end. Note any starting mass from which the standard cannot be met. Here and in Problem 2.3, when two removals give the same total, choose the smaller one.
+
+#### Problem 2.3 (5)
+
+Now year 2: for each mass $m$ from 0 to 6 at the start of year 2, find the best removal sequence and the value function $V_2(m)$.
+
+#### Problem 2.4 (5)
+
+Now year 1: starting from 6 units, find the best removal sequence. Report the optimal plan, year by year, and its total cost.
+
+#### Problem 2.5 (5)
+
+Removal costs rise steeply with the amount removed in a year, which usually favors spreading the work out. Does your plan from Problem 2.4 spread the removals out? Explain why or why not.
